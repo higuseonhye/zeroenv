@@ -129,6 +129,12 @@ def main():
         with col2:
             run_episode = st.button("▶️ Run Episode")
 
+        st.markdown("---")
+        st.header("🤖 Trained Agent")
+        checkpoint_path = st.text_input("Checkpoint path", value="checkpoints/final.pt", help="e.g. checkpoints/final.pt")
+        agent_algo = st.selectbox("Algorithm", ["dqn", "ppo"], help="Algorithm used to train the checkpoint")
+        run_trained = st.button("▶️ Run Trained Agent")
+
     # Auto-create env if not exists
     if st.session_state.env is None:
         try:
@@ -144,6 +150,38 @@ def main():
     env = st.session_state.env
     obs = st.session_state.obs
     info = st.session_state.info
+
+    # Run episode (trained agent)
+    if run_trained:
+        try:
+            if agent_algo == "dqn":
+                from algorithms.dqn import DQNAgent
+                agent = DQNAgent(obs_dim=4, n_actions=4)
+                agent.load(checkpoint_path)
+                agent.epsilon = 0.0
+            else:
+                from algorithms.ppo import PPOAgent
+                agent = PPOAgent(obs_dim=4, n_actions=4)
+                agent.load(checkpoint_path)
+            st.session_state.env = create_env(grid_size, obstacles_text, (goal_r, goal_c), (start_r, start_c))
+            obs, info = st.session_state.env.reset(seed=42)
+            st.session_state.obs = obs
+            st.session_state.total_reward = 0.0
+            st.session_state.step_count = 0
+            st.session_state.history = []
+            for _ in range(100):
+                action = agent.act(obs, deterministic=True)
+                obs, reward, terminated, truncated, info = st.session_state.env.step(action)
+                st.session_state.total_reward += reward
+                st.session_state.step_count += 1
+                st.session_state.history.append((obs.copy(), reward, action))
+                if terminated or truncated:
+                    break
+            st.session_state.obs = obs
+            st.session_state.episode_done = True
+            st.experimental_rerun()
+        except Exception as e:
+            st.error(f"Failed to load agent: {e}")
 
     # Run episode (random agent)
     if run_episode and not st.session_state.episode_done:

@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.3.0-phase2-5] - Phase 2–5 완성
+
+### Added
+- **Phase 2**: `agents/base.py`, `algorithms/dqn.py` (Replay, Target, ε-greedy)
+- **Phase 3**: `training/runner.py` (run_training, run_training_ppo), curriculum_factory
+- **Phase 4**: `visualization/renderer.py` (plot_training_curves, replay_agent), Streamlit app (GridWorld, trained agent replay)
+- **Phase 5**: `algorithms/ppo.py` (Actor-Critic, GAE, clipped objective)
+- **main.py**: `train`, `eval`, `compare` commands (DQN vs PPO)
+- **scripts/**: validate_cartpole.py, compare_dqn_ppo.py
+- **LEARNING.md**: Phase 2–5 학습 가이드
+
+### Changed
+- app.py: DQN/PPO 알고리즘 선택, 체크포인트 로드
+- compare: history.npy 저장, compare_curves.png (DQN vs PPO)
+
+---
+
 ## [0.2.0-phase1-update] - Phase 1 확장 (FAQ 관점 반영)
 
 ### Added
