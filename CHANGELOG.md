@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.2.0-phase1-update] - Phase 1 확장 (FAQ 관점 반영)
+
+### Added
+- **Configurable rewards**: `reward_goal`, `reward_step`, `reward_obstacle` params
+- **envs/factories.py**: `make_gridworld_curriculum`, `make_gridworld_procedural`
+- **Curriculum learning**: `--curriculum` flag, `curriculum_factory` in run_training
+- **docs/PHASE1_LEARNING.md**: FAQ 관점 반영, 보상·환경 설계·교체 정리
+
+### Changed
+- GridWorld: 보상 값 파라미터화 (기본값 유지, backward compatible)
+- training/runner: optional `curriculum_factory` 지원
+
+### Phase 2-5 영향
+- 없음. observation_space, action_space, reset, step 인터페이스 동일.
+
+---
+
 ## [0.1.0-phase1] - Phase 1: Environment
 
 ### Added

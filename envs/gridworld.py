@@ -37,6 +37,9 @@ class GridWorldEnv(gym.Env):
         start: tuple[int, int] | None = None,
         render_mode: str | None = None,
         max_steps: int | None = None,
+        reward_goal: float = 1.0,
+        reward_step: float = -0.01,
+        reward_obstacle: float = -1.0,
     ):
         """
         Args:
@@ -46,6 +49,9 @@ class GridWorldEnv(gym.Env):
             start: (row, col) start position. Default: top-left.
             render_mode: "human" or "rgb_array".
             max_steps: Max steps per episode. None = unlimited.
+            reward_goal: Reward for reaching goal. Default +1.
+            reward_step: Reward per step (cost). Default -0.01.
+            reward_obstacle: Reward for hitting wall/obstacle. Default -1.
         """
         super().__init__()
 
@@ -74,6 +80,10 @@ class GridWorldEnv(gym.Env):
         self.render_mode = render_mode
         self._window = None
         self._clock = None
+
+        self.reward_goal = reward_goal
+        self.reward_step = reward_step
+        self.reward_obstacle = reward_obstacle
 
         # State
         self._agent_pos: tuple[int, int] = (0, 0)
@@ -133,7 +143,7 @@ class GridWorldEnv(gym.Env):
             raise ValueError(f"Invalid action {action}")
 
         new_r, new_c = self._move(action)
-        reward = -0.01  # step penalty
+        reward = self.reward_step
         terminated = False
         truncated = False
 
@@ -145,12 +155,12 @@ class GridWorldEnv(gym.Env):
             or new_c >= self.cols
             or (new_r, new_c) in self.obstacles
         ):
-            reward = -1.0
+            reward = self.reward_obstacle
             # Stay in place
         else:
             self._agent_pos = (new_r, new_c)
             if self._agent_pos == self._goal:
-                reward = 1.0
+                reward = self.reward_goal
                 terminated = True
 
         self._step_count += 1
