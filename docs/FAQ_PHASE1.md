@@ -1,367 +1,366 @@
-# Phase 1 FAQ — Markov, 보상 설계
+# Phase 1 FAQ — Markov, Reward Design
 
-RL 학습 중 자주 나오는 질문과 답변.
-
----
-
-## Q1. Markov — "과거 이력(관측/행동 시퀀스)을 아는 게 AI에서 중요한 거 아닌가? 메모리 말이야. 왜 RL은 달라?"
-
-> **용어**: "과거 history"는 "과거 이력"이 더 정확. RL에서는 **관측 이력**(observation history), **행동 이력**(action history)처럼 "이력"을 씀. "history"는 과거를 이미 포함하므로 "과거 history"는 중복.
-
-### "메모리"를 두 가지로 나누자
-
-| 구분 | 의미 | RL에서의 예 |
-|------|------|-------------|
-| **결정용 메모리** | "지금 뭘 할지" 정할 때 필요한 과거 | 현재 관측에 다 들어있으면 불필요 |
-| **학습용 메모리** | 과거 경험을 저장해 학습에 사용 | Replay buffer, 경험 재생 |
-
-RL도 **학습용 메모리**는 쓴다 (DQN의 replay buffer가 대표적). Markov가 말하는 건 **결정용** 쪽이다.
+Frequently asked questions and answers during RL learning.
 
 ---
 
-### 다른 AI와 RL의 차이
+## Q1. Markov — "Isn't knowing past history (observation/action sequence) important in AI? Memory. Why is RL different?"
 
-**LLM·시퀀스 모델**: "상태"가 곧 **지금까지의 문맥 전체**다. 다음 토큰을 예측하려면 `[이전 토큰들]`이 필요하다. 여기서 "상태 = 과거 시퀀스"라서, 메모리(컨텍스트)가 필수다.
+> **Terminology**: "Past history" is more accurately "past record". In RL we use terms like **observation history**, **action history**. "History" already implies past, so "past history" is redundant.
 
-**RL MDP**: "상태"는 **환경이 주는 현재 스냅샷**이다. 환경이 "(위치, 속도, 목표 위치)"처럼 "지금 필요한 정보"를 한 번에 준다. 이 한 장면에 최적 결정에 필요한 게 다 들어있으면, 과거 경로는 필요 없다.
+### Divide "memory" into two types
 
-→ 차이: **상태를 누가, 어떻게 정의하느냐.** LLM은 상태=과거, RL MDP는 상태=환경이 주는 현재 요약.
+| Type | Meaning | Example in RL |
+|------|---------|---------------|
+| **Decision memory** | Past needed to decide "what to do now" | Unnecessary if current observation contains everything |
+| **Learning memory** | Store past experience for learning | Replay buffer, experience replay |
 
----
-
-### 구체적인 예
-
-**체스**: 현재 보드만 보면 최선의 수를 찾을 수 있다. "어떤 순서로 이 포지션이 됐는지"는 상관없다. → Markov, 메모리 불필요.
-
-**포커**: 상대 카드를 못 본다. 어떤 카드가 이미 나갔는지 기억해야 확률을 추정할 수 있다. → 부분 관측, 메모리 필요.
-
-**GridWorld**: (에이전트 위치, 목표 위치)를 매 스텝 받는다. "왼쪽에서 왔는지, 위에서 왔는지"는 다음 행동 선택에 영향을 안 준다. → Markov.
+RL does use **learning memory** (DQN's replay buffer is a prime example). Markov refers to the **decision** side.
 
 ---
 
-### 그럼 RL에서 메모리는 언제 쓰나?
+### Difference between other AI and RL
 
-1. **완전 관측 MDP**: 관측 = 상태. "지금 이 순간"에 필요한 정보가 다 있음. → 결정 시점에는 메모리 불필요.
-2. **부분 관측 POMDP**: 관측만으로는 부족. 과거 관측을 모아서 "진짜 상태"를 추정해야 함. → LSTM hidden state, belief state 같은 **결정용 메모리** 필요.
-3. **학습 단계**: 과거 (s,a,r,s')를 저장해 재사용 (replay buffer 등). → **학습용 메모리**는 항상 사용.
+**LLM·Sequence models**: "State" is the **entire context so far**. To predict the next token, `[previous tokens]` are needed. Here "state = past sequence", so memory (context) is essential.
 
----
+**RL MDP**: "State" is the **current snapshot from the environment**. The environment gives "information needed now" at once, e.g. "(position, velocity, goal position)". If this single frame contains everything needed for optimal decisions, past trajectory is unnecessary.
 
-### 한 줄로
-
-**Markov = "지금 이 순간의 정보만으로 최선의 결정을 내릴 수 있다."**  
-환경이 그 "지금 이 순간"을 충분히 잘 요약해서 주면 메모리 없이도 된다. 요약이 부족하면(부분 관측) 메모리로 채운다.
+→ Difference: **Who defines state, and how.** LLM: state=past, RL MDP: state=environment's current summary.
 
 ---
 
-## Q2. 누적 보상 — "스텝 수에 비례하는 거 아닌가? 항상 기울어진 운동장에서 싸우는 거랑 마찬가지 아닌가?"
+### Concrete examples
 
-> **용어**: "시간"보다 **스텝 수**(에피소드 길이)가 정확. RL에서 누적 보상은 "실제 시간"이 아니라 **몇 스텝을 거쳤는지**에 따라 변함.
+**Chess**: Current board alone is enough to find the best move. "In what order this position was reached" doesn't matter. → Markov, memory unnecessary.
 
-### 맞는 부분
+**Poker**: Opponent's cards are hidden. Must remember which cards were played to estimate probabilities. → Partial observability, memory needed.
 
-에피소드가 길수록(스텝이 많을수록) 보상 합이 더 쌓인다. 스텝당 -0.01이면 100스텝 = -1.0, 10스텝 = -0.1. **"스텝 수에 비례"**라는 말은 그 의미에서 맞다.
+**GridWorld**: Receives (agent position, goal position) each step. "Came from left or from above" doesn't affect next action choice. → Markov.
 
-### 그런데 이건 "불공정"이 아니라 "설계"다
+---
 
-우리가 원하는 건 **목표를 빨리 도달**하는 것. 그래서 스텝이 많을수록 누적 보상이 나빠지도록 설계한 것.
+### When does RL use memory?
 
-- 8스텝에 도달: +1 - 0.08 = 0.92
-- 50스텝에 도달: +1 - 0.5 = 0.5
+1. **Fully observable MDP**: observation = state. All info needed "at this moment" is present. → No memory needed at decision time.
+2. **Partially observable POMDP**: Observation alone is insufficient. Must aggregate past observations to estimate "true state". → **Decision memory** like LSTM hidden state, belief state needed.
+3. **Learning phase**: Store past (s,a,r,s') for reuse (replay buffer, etc.). → **Learning memory** is always used.
 
-같은 규칙으로 평가하되, **효율적인 경로**가 더 높은 보상을 받도록 만든 것.
+---
 
-### 할인(discount) γ의 역할
+### In one line
 
-실제로는 **할인 누적 보상**을 쓴다:
+**Markov = "Can make the best decision with only the information at this moment."**  
+If the environment summarizes "this moment" well enough, memory isn't needed. If the summary is insufficient (partial observability), fill it with memory.
+
+---
+
+## Q2. Cumulative Reward — "Isn't it proportional to step count? Like always fighting on a tilted playing field?"
+
+> **Terminology**: **Step count** (episode length) is more accurate than "time". In RL, cumulative reward varies by **how many steps** were taken, not "real time".
+
+### What's correct
+
+The longer the episode (more steps), the more reward accumulates. With -0.01 per step: 100 steps = -1.0, 10 steps = -0.1. Saying "proportional to step count" is correct in that sense.
+
+### But this isn't "unfair" — it's by design
+
+We want **fast goal attainment**. So we design cumulative reward to worsen with more steps.
+
+- Reach in 8 steps: +1 - 0.08 = 0.92
+- Reach in 50 steps: +1 - 0.5 = 0.5
+
+Same rules for everyone, but **efficient paths** get higher reward.
+
+### Role of discount γ
+
+We actually use **discounted cumulative reward**:
 
 ```
 G_t = r_t + γ·r_{t+1} + γ²·r_{t+2} + ...
 ```
 
-γ < 1이면 **가까운 미래**가 더 중요해짐. 먼 미래 보상은 0에 가깝게 줄어듦. 그래서 "스텝이 많으면 무조건 유리"가 아니라 **언제** 보상을 받는지가 중요해짐.
+With γ < 1, **near future** matters more. Distant future reward shrinks toward 0. So "more steps = always better" is false — **when** you get the reward matters.
 
-### "기울어진 운동장" 비유
+### "Tilted playing field" analogy
 
-- **같은 규칙**으로 모든 에이전트를 평가하므로 "공정"하다.
-- 다만 **보상 설계가 학습 방향을 결정**하므로, "어떤 행동이 유리한 운동장"인지는 우리가 보상으로 설계한다.
-- 스텝 패널티를 넣으면 → "빨리 끝내는 쪽"이 유리한 운동장
-- 안 넣으면 → "천천히 가도 상관없는" 운동장
+- All agents evaluated by the **same rules**, so it's "fair".
+- But **reward design determines learning direction**, so we design which actions are favored via rewards.
+- Step penalty → field tilted toward "finish quickly"
+- No penalty → field tilted toward "no rush"
 
-즉, **의도적으로 기울어진 보상 구조**를 만드는 것.
-
----
-
-## Q3. Observation vs State — 환경이 주는 건 "관측"인데, 이론에서는 "상태"를 쓴다. 뭐가 다른가?
-
-### 정의
-
-- **State (상태)**: 환경의 **진짜 전체 정보**. MDP 이론의 핵심 개념. 에이전트가 보지 못할 수도 있음.
-- **Observation (관측)**: 에이전트가 **실제로 받는 정보**. `env.step()`이 반환하는 `obs`.
-
-### 관계
-
-| 상황 | 관계 | 예 |
-|------|------|-----|
-| **완전 관측** | 관측 = 상태 | GridWorld: obs가 (위치, 목표) → 곧 상태 |
-| **부분 관측** | 관측 ⊂ 상태 | 포커: 내 카드만 보임, 상대 카드는 상태의 일부지만 관측 안 됨 |
-
-완전 관측이면 **obs를 그대로 state로 써도 된다.** GridWorld, CartPole이 그렇다.  
-부분 관측이면 관측만으로는 상태를 알 수 없어서, 이력을 모아 "상태 추정"을 해야 한다.
-
-### 한 줄로
-
-**관측 = 에이전트가 보는 것, 상태 = 환경의 전체 정보.** 완전 관측이면 둘이 같다.
+So we **intentionally design a tilted reward structure**.
 
 ---
 
-## Q4. terminated vs truncated — 왜 둘을 나눠야 하나?
+## Q3. Observation vs State — Environment gives "observation", but theory uses "state". What's the difference?
 
-### 의미
+### Definitions
 
-- **terminated**: MDP **안에서** 자연스럽게 끝남. 목표 도달, 사망 등.
-- **truncated**: MDP **밖** 요인으로 끊김. max_steps 초과, 시간 제한 등.
+- **State**: Environment's **true full information**. Core concept of MDP theory. Agent may not see it.
+- **Observation**: What the agent **actually receives**. The `obs` returned by `env.step()`.
 
-### Bootstrapping에서의 차이 (Phase 2 DQN에서 중요)
+### Relationship
 
-TD 학습에서 "다음 상태의 가치"를 쓸 때:
+| Situation | Relationship | Example |
+|-----------|--------------|---------|
+| **Full observability** | observation = state | GridWorld: obs is (position, goal) → that is the state |
+| **Partial observability** | observation ⊂ state | Poker: only own cards visible, opponent cards are part of state but not observed |
 
-| | 다음 상태 가치 |
-|--|----------------|
-| **terminated** | 0 (진짜 끝났으므로 미래 없음) |
-| **truncated** | Q(s',a') 사용 가능 (실제로는 계속될 수 있으므로) |
+With full observability, **use obs directly as state.** GridWorld, CartPole do this.  
+With partial observability, state can't be known from observation alone; must aggregate history to "estimate state".
 
-`done = terminated or truncated`로 묶어서 "다음 가치 = 0"으로 처리하면, truncated인 경우에도 잘못 0으로 학습한다. **목표에 도달한 것과 시간 초과를 구분**해야 학습이 정확해진다.
+### In one line
 
-### 한 줄로
-
-**terminated = 진짜 끝, truncated = 강제 종료.** 다음 가치를 0으로 쓸지 말지가 다르다.
+**Observation = what the agent sees, State = environment's full information.** With full observability they're the same.
 
 ---
 
-## Q5. Discount γ — "γ=0.99"면 100스텝 뒤 보상은 얼마나 가치가 있나?
+## Q4. terminated vs truncated — Why separate them?
 
-### 질문이 무슨 뜻인가?
+### Meaning
 
-RL에서 에이전트가 "얼마나 좋은가"를 재는 **누적 보상**은 단순 합이 아니다:
+- **terminated**: Ends naturally **within** the MDP. Goal reached, death, etc.
+- **truncated**: Cut off by **external** factor. max_steps exceeded, time limit, etc.
+
+### Difference in Bootstrapping (important for Phase 2 DQN)
+
+When using "next state value" in TD learning:
+
+| | Next state value |
+|--|------------------|
+| **terminated** | 0 (truly ended, no future) |
+| **truncated** | Q(s',a') usable (episode could continue) |
+
+Treating `done = terminated or truncated` and "next value = 0" for both would incorrectly learn 0 for truncated cases. **Distinguishing goal reached vs timeout** is needed for correct learning.
+
+### In one line
+
+**terminated = truly ended, truncated = forced stop.** Whether to use 0 for next value differs.
+
+---
+
+## Q5. Discount γ — With "γ=0.99", how much is a reward 100 steps later worth?
+
+### What the question means
+
+In RL, **cumulative reward** (how "good" the agent is) is not a simple sum:
 
 ```
-총 가치 = (지금 보상) + (다음 스텝 보상)×γ + (그다음 보상)×γ² + ...
+Total value = (current reward) + (next step reward)×γ + (next next reward)×γ² + ...
 ```
 
-여기서 **γ(감마)**가 "미래 보상을 얼마나 할인할지"를 정한다.  
-질문은 이걸 구체적으로 묻는 것이다:
+**γ (gamma)** controls "how much to discount future rewards".  
+The question asks concretely:
 
-> **"지금으로부터 100스텝 뒤에 받는 보상 1은, 지금 시점에서는 얼마나 가치가 있나?"**
+> **"A reward of 1 received 100 steps from now — how much is it worth at the current time?"**
 
-즉, "100스텝 뒤 보상" = **t+100 시점에 받는 보상**이고,  
-"가치가 있나" = **그 보상이 누적 가치에 기여할 때 γ를 몇 번 곱하느냐**를 묻는 것이다.
+So "reward 100 steps later" = reward at **t+100**,  
+"worth" = how much that reward contributes to cumulative value when γ is applied.
 
-### 왜 미래를 할인하나?
+### Why discount the future?
 
-- **지금** 받는 보상 1은 그대로 1로 셈.
-- **미래**에 받는 보상은 1보다 덜 중요하게 셈. (γ < 1)
-- 그래서 "가까운 보상"이 "먼 보상"보다 더 중요해진다.
+- **Current** reward 1 counts as 1.
+- **Future** reward is weighted less than 1. (γ < 1)
+- So "near reward" matters more than "distant reward".
 
-→ 에이전트가 **먼 미래보다 가까운 미래**를 더 신경 쓰게 만드는 장치다.
+→ A mechanism to make the agent care more about **near future** than far future.
 
-### 수식
+### Formula
 
-k스텝 뒤에 받는 보상 r의 **현재 가치** = γ^k × r
+**Current value** of reward r received k steps later = γ^k × r
 
-### γ=0.99일 때
+### With γ=0.99
 
-| 스텝 | γ^k | 의미 |
-|------|-----|------|
-| 0 | 1.0 | 지금 받는 보상 = 100% |
-| 10 | 0.90 | 10스텝 뒤 = 90% |
-| 50 | 0.61 | 50스텝 뒤 = 61% |
-| 100 | 0.37 | 100스텝 뒤 = 37% |
-| 200 | 0.13 | 200스텝 뒤 = 13% |
+| Steps | γ^k | Meaning |
+|-------|-----|---------|
+| 0 | 1.0 | Current reward = 100% |
+| 10 | 0.90 | 10 steps later = 90% |
+| 50 | 0.61 | 50 steps later = 61% |
+| 100 | 0.37 | 100 steps later = 37% |
+| 200 | 0.13 | 200 steps later = 13% |
 
-예: 100스텝 뒤에 +1을 받으면, 그건 "지금" 기준으로 0.37만큼 기여한다.
+Example: +1 received 100 steps later contributes 0.37 at "now".
 
-### 해석
+### Interpretation
 
-- γ가 작을수록 **단기**에 집중. γ=0.9면 10스텝 뒤도 35%로 빠르게 감쇠.
-- γ가 1에 가까우면 **장기**도 고려. γ=0.99면 100스텝 뒤도 37% 남음.
-- γ=1이면 미래 보상을 전부 동등하게. 에피소드가 무한이면 합이 발산할 수 있어서, 보통 γ<1을 쓴다.
+- Smaller γ → focus on **short term**. γ=0.9: 10 steps later already 35% decay.
+- γ close to 1 → consider **long term**. γ=0.99: 100 steps later still 37%.
+- γ=1: all future rewards equal. With infinite episodes the sum can diverge, so usually γ<1.
 
-### 한 줄로
+### In one line
 
-**γ^k = "k스텝 뒤 보상의 현재 가치 비율".** γ=0.99면 100스텝 뒤 보상은 지금 가치의 37%.
-
----
-
-## Q6. 미래 보상을 더 크게? 의도치 않은 보상?
-
-### "당장은 없어도, 먼 미래에 큰 보상" — 인생처럼
-
-맞다. **미래를 더 크게 두는 설계**도 의미 있다.
-
-**γ > 1은?**  
-이론적으로 가능하지만, 에피소드가 길면 합이 **발산**한다. 그래서 보통 γ ∈ (0, 1]을 쓴다.
-
-**대신 이렇게 한다:**
-- **γ를 1에 가깝게** (0.99, 0.999): 미래를 덜 할인 → 먼 미래 보상도 꽤 중요하게
-- **희소 보상**: 목표 도달 시에만 큰 보상. "지금은 0, 나중에 한 번에 +1" 같은 설계
-- **보상 설계**: "단기 손실, 장기 이득"을 보상 구조로 넣기
-
-→ **인생의 "지연 만족"**처럼, RL에서도 γ≈1 + 희소 보상으로 "먼 미래를 위한 행동"을 유도할 수 있다.
-
-### "의도치 않은 상황에서 보상을 받는 것"
-
-에이전트는 **누적 보상을 최대화**한다. 그래서:
-
-- 우리가 **의도한 경로**가 아니라
-- **우리가 놓친 경로**로 보상을 받으면
-- 에이전트는 그 경로를 택한다.
-
-이게 **Reward Hacking**이다. 예:
-- 목표: "목표지점 도달" → 버그로 특정 칸만 밟아도 +1
-- 목표: "점수 높이기" → 화면 버그를 반복해 점수만 올림
-
-**왜 생기나?**  
-보상 함수가 "우리가 원하는 행동"을 완벽히 반영하지 못할 때.
-
-**대응:**
-- 보상 설계를 꼼꼼히 검토
-- 의도치 않은 보상 경로가 있는지 시뮬레이션
-- 필요하면 **역강화학습(IRL)**이나 **선호 학습**으로 사람 의도를 학습
-
-→ **보상 설계는 "에이전트가 뭘 배울지"를 정한다.** 의도치 않은 최적해가 생기지 않도록 설계해야 한다.
-
-### "99번 실패해도 1번 성공이 크게 보상" — quantum jump, 계단식
-
-사람 성장처럼 **갑자기 터지는 돌파**, **계단식 점프**를 보상으로 넣을 수 있다.
-
-**구조 예시:**
-- 99번 실패(보상 0 또는 작은 음수) → 100번째 성공 시 **+100**
-- "거의 다 됐다"는 +0.5, "완전히 됐다"는 +100 → 계단식(step function)
-- 레벨별: 1단계 달성 +1, 2단계 +10, 3단계 +100 → quantum jump
-
-**의미:**
-- **희소 + 큰 보상**: 평평하다가 한 번 성공하면 크게 올라감
-- **지속 시도에 대한 보상**: 실패는 거의 안 깎고, 성공만 크게 주면 "포기하지 말고 계속 시도"를 유도
-- **성장 곡선**: 초반 plateau → 돌파 → 다음 plateau → …
-
-**구현:**
-- 성공 시 보상 = 기본값 × (1 + bonus) 또는 레벨별 고정 보상
-- "첫 성공 보너스": 처음 달성할 때만 추가 보상
-- 계단식: `if progress >= threshold_k: reward = level_k_reward`
-
-**주의:**
-- 희소 보상은 **학습 신호가 드물어서** 탐험이 잘 안 되면 성공을 못 찾을 수 있음
-- **Curriculum learning**(쉬운 것부터), **Reward shaping**(중간 보상), **Curiosity** 등으로 "성공까지 가는 길"을 잡아줄 필요가 있음
-
-→ **인생의 "갑자기 터지는 순간"을 보상으로 설계할 수 있다.** 다만 그 순간까지 도달하는 탐험이 선행되어야 한다.
-
-### "중간중간 다른 종류의 보상" — 마이너스도 의미 있고, 여정에서 행복을 누리게
-
-가능하다. **여러 종류의 보상**을 동시에 주는 건 흔한 설계다.
-
-**다양한 보상 유형:**
-- **목표 보상**: 목표 도달 +1 (궁극적 성공)
-- **과정 보상**: 새 구역 발견 +0.1, 단서 찾음 +0.05 (작은 기쁨)
-- **스텝 비용**: -0.01 (움직임의 대가 — "나쁜 것"이 아니라 그냥 비용)
-- **실패 보상**: 벽 충돌 -1 (정보 — "이건 아니다"를 배움)
-- **호기심 보상**: 처음 가 본 곳 +ε (탐험 자체에 대한 보상)
-
-**"마이너스"가 의미를 갖는 경우:**
-- **-0.01 스텝**: "시간/에너지를 쓰는 것"의 대가. 목표를 향해 가는 과정의 자연스러운 비용.
-- **-1 충돌**: "이 경로는 아니다"라는 학습 신호. 실패도 정보이자 성장의 일부.
-- 숫자가 음수라서 "나쁜 것"이 아니라, **행동의 결과**를 알려주는 역할을 한다.
-
-**"행복을 찾아 누리게":**
-- **목표만** 주면: "결과만 중요" → 여정은 고통으로 느껴질 수 있음
-- **중간 보상**을 넣으면: "새로운 것 발견", "조금씩 가까워짐", "탐험의 재미" → **과정 자체가 의미**를 가짐
-- **Intrinsic reward**(호기심, 다양성): 목표와 무관하게 "새로운 경험"에 작은 보상 → 여정을 즐기게 만듦
-
-**구현:**
-- `reward = r_goal + r_process + r_curiosity + r_step + r_fail`
-- 각 항을 따로 설계한 뒤 합산. 비율(가중치)로 "목표 vs 과정" 균형을 맞춤.
-
-→ **목표뿐 아니라 여정의 작은 기쁨, 실패의 의미, 탐험의 재미**를 보상에 넣을 수 있다. 마이너스는 "벌"이 아니라 **정보와 비용**으로 설계하면 된다.
+**γ^k = "current value ratio of reward k steps later".** With γ=0.99, reward 100 steps later is 37% of current value.
 
 ---
 
-## Q7. 환경 자체를 새롭게 설계·변경하는 것 — RL에서 의미가 있나?
+## Q6. Larger future reward? Unintended reward?
 
-있다. **환경 설계**는 RL의 세 축(에이전트, 환경, 보상) 중 하나다. 보상만 바꾸는 게 아니라 **환경 구조**를 바꾸는 것도 핵심 도구다.
+### "Nothing now, but big reward far in the future" — like life
 
-### 환경을 바꾼다는 건
+Yes. **Designing for larger future** also makes sense.
 
-- **그리드 크기**, **장애물 개수·위치**, **목표 위치** 같은 **구조** 변경
-- **규칙** 변경: 어떤 행동이 가능한지, 전이가 어떻게 되는지
-- **난이도** 변경: 쉬운 맵 → 어려운 맵
-- **새 맵/레벨 생성**: 매번 다른 환경에서 학습
+**γ > 1?**  
+Theoretically possible, but with long episodes the sum **diverges**. So we usually use γ ∈ (0, 1].
 
-### RL에서 어떻게 반영하나
+**Instead, do this:**
+- **γ close to 1** (0.99, 0.999): discount future less → distant future reward still matters
+- **Sparse reward**: large reward only on goal. Design like "0 now, +1 once later"
+- **Reward design**: put "short-term loss, long-term gain" into the reward structure
 
-| 방법 | 의미 |
-|------|------|
-| **Curriculum Learning** | 쉬운 환경부터 → 점점 어렵게. 3×3 그리드 → 5×5 → 10×10 |
-| **Procedural Generation** | 매 에피소드마다 장애물·목표를 랜덤 생성. 다양한 환경에서 학습 → **일반화** |
-| **Parameterized Environment** | `grid_size`, `n_obstacles` 등을 인자로 받아 환경을 조절 |
-| **환경 재설계** | 학습이 막히면 "환경이 너무 어렵다"고 보고, 맵을 단순화하거나 중간 목표 추가 |
+→ Like life's "delayed gratification", RL can use γ≈1 + sparse reward to guide "action for distant future".
 
-### 왜 중요한가
+### "Getting reward in unintended situations"
 
-- **에이전트만** 바꾸면: 같은 환경에서 더 잘하는 법만 배움
-- **환경을** 바꾸면: "어떤 환경에서 배울지"를 바꿈 → 학습 효율, 일반화, 난이도 조절이 달라짐
-- **인생 비유**: "자기만 바꾸기" vs "살아가는 환경(직장, 관계, 공간)을 바꾸기". 둘 다 필요하다.
+The agent **maximizes cumulative reward**. So:
 
-### 구현 예시 (GridWorld)
+- Not the path we **intended**, but
+- A path we **missed** that gives reward
+- The agent will choose that path.
+
+This is **Reward Hacking**. Examples:
+- Goal: "reach goal" → bug lets +1 by stepping on a specific cell
+- Goal: "high score" → repeat screen bug to raise score only
+
+**Why does it happen?**  
+When the reward function doesn't perfectly reflect "the behavior we want".
+
+**Countermeasures:**
+- Review reward design carefully
+- Simulate whether unintended reward paths exist
+- If needed, use **IRL** or **preference learning** to learn human intent
+
+→ **Reward design determines "what the agent learns."** Design so unintended optima don't arise.
+
+### "99 failures but 1 success gets big reward" — quantum jump, step function
+
+Like human growth, you can put **sudden breakthrough**, **step-wise jump** into rewards.
+
+**Structure examples:**
+- 99 failures (reward 0 or small negative) → 100th success **+100**
+- "Almost there" +0.5, "fully done" +100 → step function
+- By level: level 1 +1, level 2 +10, level 3 +100 → quantum jump
+
+**Meaning:**
+- **Sparse + large reward**: flat until one success, then big jump
+- **Reward for persistence**: little penalty for failure, large reward for success → "don't give up, keep trying"
+- **Growth curve**: initial plateau → breakthrough → next plateau → …
+
+**Implementation:**
+- Success reward = base × (1 + bonus) or fixed per level
+- "First success bonus": extra reward only on first achievement
+- Step function: `if progress >= threshold_k: reward = level_k_reward`
+
+**Caution:**
+- Sparse reward → **rare learning signal**; without good exploration, success may never be found
+- **Curriculum learning** (easy first), **Reward shaping** (intermediate reward), **Curiosity** etc. needed to "find the path to success"
+
+→ **You can design "sudden breakthrough" into rewards.** But exploration to reach that moment must come first.
+
+### "Different kinds of reward along the way" — minus has meaning, enjoy the journey
+
+Yes. **Multiple reward types** at once is common design.
+
+**Diverse reward types:**
+- **Goal reward**: reach goal +1 (ultimate success)
+- **Process reward**: discover new area +0.1, find clue +0.05 (small joy)
+- **Step cost**: -0.01 (cost of movement — not "bad", just cost)
+- **Failure reward**: wall collision -1 (information — "this is not it")
+- **Curiosity reward**: first visit +ε (reward for exploration itself)
+
+**When "minus" has meaning:**
+- **-0.01 step**: cost of "using time/energy". Natural cost of moving toward the goal.
+- **-1 collision**: learning signal "this path is wrong". Failure is also information and part of growth.
+- Negative number doesn't mean "bad" — it **informs the result** of the action.
+
+**"Enjoy the journey":**
+- **Goal only**: "result matters" → journey can feel like suffering
+- **Intermediate rewards**: "discover something new", "getting closer", "fun of exploration" → **process itself has meaning**
+- **Intrinsic reward** (curiosity, diversity): small reward for "new experience" regardless of goal → enjoy the journey
+
+**Implementation:**
+- Each term designed separately, then summed. Balance "goal vs process" with weights.
+
+→ **You can put small joys of the journey, meaning of failure, fun of exploration into rewards.** Minus is not "punishment" but **information and cost**.
+
+---
+
+## Q7. Designing·Changing the Environment Itself — Does it matter in RL?
+
+Yes. **Environment design** is one of RL's three axes (agent, environment, reward). Changing **environment structure** is as important as changing rewards.
+
+### What changing the environment means
+
+- **Structure**: grid size, obstacle count·position, goal position
+- **Rules**: what actions are possible, how transitions work
+- **Difficulty**: easy map → hard map
+- **New map/level generation**: learn in different environment each time
+
+### How RL reflects this
+
+| Method | Meaning |
+|--------|---------|
+| **Curriculum Learning** | Easy environment first → gradually harder. 3×3 grid → 5×5 → 10×10 |
+| **Procedural Generation** | Random obstacles·goal each episode. Learn in diverse environments → **generalization** |
+| **Parameterized Environment** | Take `grid_size`, `n_obstacles` etc. as args to tune environment |
+| **Environment redesign** | When learning stalls, consider "environment too hard", simplify map or add intermediate goals |
+
+### Why it matters
+
+- **Agent only**: learns to do better in the same environment
+- **Environment**: changes "what environment to learn in" → learning efficiency, generalization, difficulty control change
+- **Life analogy**: "change only yourself" vs "change the environment (work, relationships, space)". Both are needed.
+
+### Implementation example (GridWorld)
 
 ```python
-# Curriculum: 에피소드 수에 따라 난이도 상승
+# Curriculum: difficulty rises with episode count
 def make_env(episode: int):
-    size = 3 + min(episode // 100, 7)  # 3→10 점진적 확대
+    size = 3 + min(episode // 100, 7)  # 3→10 gradual expansion
     return GridWorldEnv(grid_size=size, obstacles=...)
 
-# Procedural: 매번 다른 맵
+# Procedural: different map each time
 def make_env(seed: int):
     obstacles = random_obstacles(seed)
     return GridWorldEnv(obstacles=obstacles)
 ```
 
-→ **보상 설계만큼 환경 설계도 중요하다.** 막히면 "에이전트를 더 똑똑하게"만 생각하지 말고, **환경을 바꿔보는 것**도 전략이다.
+→ **Environment design is as important as reward design.** When stuck, don't only think "make the agent smarter" — **changing the environment** is also a strategy.
 
-### 그리드를 완전히 다른 것으로 바꿔도 되나?
+### Can we replace the grid with something completely different?
 
-된다. **그리드를 아예 다른 환경으로 교체**해도 된다.
+Yes. **Replace the grid with a different environment entirely.**
 
-- GridWorld → CartPole로 바꾸기
-- GridWorld → 미로, 그래프, 연속 공간, 이미지 기반 게임 등 **완전히 다른 구조**로 바꾸기
+- GridWorld → CartPole
+- GridWorld → maze, graph, continuous space, image-based game — **completely different structure**
 
-환경은 **교체 가능한 부품**이다. `reset()`, `step()`, `observation_space`, `action_space`만 Gymnasium 규격에 맞추면, 에이전트·학습 루프는 그대로 두고 **환경만 갈아끼우면** 된다.
+Environments are **swappable components**. As long as `reset()`, `step()`, `observation_space`, `action_space` follow Gymnasium spec, keep agent·training loop and **swap only the environment**.
 
 ```python
-# 지금: GridWorld
+# Now: GridWorld
 env = GridWorldEnv(...)
 
-# 바꿔도 됨: CartPole
+# Can swap: CartPole
 env = gym.make("CartPole-v1")
 
-# 바꿔도 됨: 직접 만든 다른 환경
+# Can swap: custom environment
 env = MyGraphEnv(...)
 ```
 
-→ **GridWorld는 Phase 1 예시.** 필요하면 그리드를 버리고 완전히 다른 환경으로 교체해도 된다.
+→ **GridWorld is the Phase 1 example.** You can drop the grid and swap to a completely different environment if needed.
 
 ---
 
-## 요약
+## Summary
 
-| 질문 | 핵심 |
-|------|------|
-| **Markov vs 메모리** | 결정용 vs 학습용 구분. LLM은 상태=과거, RL MDP는 상태=환경 요약. 부분 관측이면 메모리로 채움. |
-| **누적 보상과 스텝 수** | 스텝 많을수록 변하는 건 설계. 할인 γ로 가까운 미래를 더 중요하게. |
-| **Observation vs State** | 관측=에이전트가 보는 것, 상태=환경 전체 정보. 완전 관측이면 같음. |
-| **terminated vs truncated** | terminated=진짜 끝(다음 가치 0), truncated=강제 종료(다음 가치 사용 가능). Bootstrapping에 중요. |
-| **Discount γ** | γ^k = k스텝 뒤 보상의 현재 가치 비율. γ=0.99면 100스텝 뒤=37%. |
-| **미래·의도치 않은 보상** | γ≈1 + 희소 보상으로 "먼 미래" 유도. Reward hacking: 의도치 않은 경로로 보상 받으면 그걸 택함. |
-| **Quantum jump / 계단식** | 99번 실패 + 1번 성공 시 큰 보상. 희소+큰 보상으로 "돌파" 유도. 탐험·curriculum이 선행되어야 함. |
-| **다양한 보상, 여정의 행복** | 목표·과정·호기심·스텝비용·실패를 각각 설계. 마이너스는 "벌"이 아니라 정보·비용. 중간 보상으로 여정 자체가 의미를 갖게. |
-| **환경 설계·변경** | RL의 세 축 중 하나. Curriculum, Procedural, Parameterized. 막히면 환경을 바꿔보는 것도 전략. |
-| **그리드 → 다른 환경 교체** | 된다. 환경은 교체 가능한 부품. reset/step/space만 맞추면 그리드를 버리고 CartPole, 그래프, 이미지 등 완전히 다른 것으로 바꿔도 됨. |
+| Question | Key point |
+|----------|-----------|
+| **Markov vs memory** | Decision vs learning distinction. LLM: state=past, RL MDP: state=environment summary. Partial observability → fill with memory. |
+| **Cumulative reward and step count** | Varying with steps is by design. Discount γ makes near future more important. |
+| **Observation vs State** | Observation=what agent sees, State=environment's full info. Full observability → same. |
+| **terminated vs truncated** | terminated=truly ended (next value 0), truncated=forced stop (next value usable). Important for bootstrapping. |
+| **Discount γ** | γ^k = current value ratio of reward k steps later. γ=0.99 → 100 steps later = 37%. |
+| **Future·Unintended reward** | γ≈1 + sparse reward to guide "distant future". Reward hacking: unintended path → agent chooses it. |
+| **Quantum jump / step function** | 99 failures + 1 success → large reward. Sparse+large reward guides "breakthrough". Exploration·curriculum must come first. |
+| **Diverse rewards, journey satisfaction** | Design goal, process, curiosity, step cost, failure separately. Minus is not "punishment" but information·cost. Intermediate rewards give meaning to the journey. |
+| **Environment design·change** | One of RL's three axes. Curriculum, Procedural, Parameterized. When stuck, changing the environment is also a strategy. |
+| **Grid → other environment swap** | Yes. Environments are swappable. Match reset/step/space and you can drop the grid for CartPole, graphs, images, etc. |

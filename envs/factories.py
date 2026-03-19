@@ -1,6 +1,6 @@
 """
-Environment factories — Curriculum, Procedural, 환경 교체.
-Phase 1 확장: FAQ 관점 반영.
+Environment factories — Curriculum, Procedural, environment swap.
+Phase 1 extension: FAQ perspectives reflected.
 """
 
 from __future__ import annotations
@@ -11,7 +11,7 @@ from envs.gridworld import GridWorldEnv
 
 
 def make_gridworld_basic(**kwargs) -> GridWorldEnv:
-    """기본 GridWorld. 기존 동작과 동일."""
+    """Basic GridWorld. Same behavior as original."""
     return GridWorldEnv(
         grid_size=5,
         obstacles=[(1, 1), (2, 2)],
@@ -21,8 +21,8 @@ def make_gridworld_basic(**kwargs) -> GridWorldEnv:
 
 def make_gridworld_curriculum(episode: int, **kwargs) -> GridWorldEnv:
     """
-    Curriculum: 에피소드 수에 따라 난이도 상승.
-    grid_size 3 → 5 → 7 → ... 점진적 확대.
+    Curriculum: difficulty increases with episode count.
+    grid_size 3 → 5 → 7 → ... gradual expansion.
     """
     size = 3 + min(episode // 100, 7)  # 3~10
     obstacles = [(size // 2, size // 2)] if size >= 3 else []
@@ -35,8 +35,8 @@ def make_gridworld_curriculum(episode: int, **kwargs) -> GridWorldEnv:
 
 def make_gridworld_procedural(seed: int, grid_size: int = 5, obstacle_count: int = 3, **kwargs) -> GridWorldEnv:
     """
-    Procedural: seed마다 다른 맵 생성.
-    매번 다른 장애물 배치 → 다양한 환경에서 학습 → 일반화.
+    Procedural: different map per seed.
+    Different obstacle layout each time → learn in diverse environments → generalization.
     """
     rng = np.random.default_rng(seed)
     rows = cols = grid_size

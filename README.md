@@ -39,24 +39,24 @@ zeroenv/
 ├── scripts/        # Validation (CartPole, compare)
 ├── main.py         # CLI: train, eval, compare
 ├── app.py          # Streamlit dashboard
-├── LEARNING.md     # Phase별 학습 가이드
+├── LEARNING.md     # Phase-by-phase learning guide
 └── docs/           # PHASE1_LEARNING, FAQ
 ```
 
 ## Phase Summary
 
-| Phase | 내용 |
-|-------|------|
-| 1 | GridWorld, Gymnasium API, 보상 설계 |
+| Phase | Content |
+|-------|---------|
+| 1 | GridWorld, Gymnasium API, reward design |
 | 2 | DQN (Replay, Target, ε-greedy), Agent base |
-| 3 | Training loop, 로깅, 체크포인트 |
-| 4 | Streamlit 대시보드, 학습 곡선, 에이전트 재생 |
-| 5 | PPO (Actor-Critic, GAE, clipped), DQN vs PPO 비교 |
+| 3 | Training loop, logging, checkpoints |
+| 4 | Streamlit dashboard, learning curves, agent replay |
+| 5 | PPO (Actor-Critic, GAE, clipped), DQN vs PPO comparison |
 
-## 학습 포인트
+## Learning Points
 
-→ **[LEARNING.md](LEARNING.md)** — Phase별 핵심 개념 (MDP, Q-learning, Policy Gradient, PPO)  
-→ **[docs/PHASE1_LEARNING.md](docs/PHASE1_LEARNING.md)** — Phase 1 상세 & FAQ
+→ **[LEARNING.md](LEARNING.md)** — Phase-by-phase core concepts (MDP, Q-learning, Policy Gradient, PPO)  
+→ **[docs/PHASE1_LEARNING.md](docs/PHASE1_LEARNING.md)** — Phase 1 details & FAQ
 
 ## Dependencies
 

@@ -1,4 +1,4 @@
-"""Procedural GridWorld 테스트."""
+"""Procedural GridWorld test."""
 from envs.factories import make_gridworld_procedural
 
 env = make_gridworld_procedural(seed=42)

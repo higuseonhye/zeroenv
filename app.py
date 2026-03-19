@@ -23,12 +23,12 @@ def load_history(path):
     if not p.is_absolute():
         p = (PROJECT_ROOT / path).resolve()
     if not p.exists():
-        return None, f"파일 없음: {p}"
+        return None, f"File not found: {p}"
     try:
         data = np.load(str(p), allow_pickle=True)
         out = data.item() if hasattr(data, "item") else dict(data)
         if not isinstance(out, dict):
-            return None, f"dict가 아님: {type(out)}"
+            return None, f"Not a dict: {type(out)}"
         return out, None
     except Exception as e:
         return None, str(e)
@@ -113,10 +113,10 @@ def main():
     init_session()
 
     st.title("🎮 ZeroEnv — RL Dashboard")
-    st.caption("GridWorld, training curves, live training, DQN vs PPO 비교")
+    st.caption("GridWorld, training curves, live training, DQN vs PPO comparison")
 
     tab_grid, tab_curves, tab_compare, tab_train = st.tabs([
-        "GridWorld", "📈 학습 곡선", "⚖️ DQN vs PPO", "▶️ 실시간 학습"
+        "GridWorld", "📈 Learning Curves", "⚖️ DQN vs PPO", "▶️ Live Training"
     ])
 
     with st.sidebar:
@@ -292,11 +292,11 @@ def main():
             env._agent_pos = (obs[0], obs[1])
             st.image(arr, width=320, caption=f"Step {step_slider}: reward={replay_r:.2f}")
 
-    # --- Tab: 학습 곡선 ---
+    # --- Tab: Learning Curves ---
     with tab_curves:
-        st.subheader("📈 학습 곡선")
-        hist_path = st.text_input("History 경로", value="checkpoints/history.npy", key="hist_path")
-        if st.button("로드", key="load_hist"):
+        st.subheader("📈 Learning Curves")
+        hist_path = st.text_input("History path", value="checkpoints/history.npy", key="hist_path")
+        if st.button("Load", key="load_hist"):
             h, err = load_history(hist_path)
             st.session_state.loaded_history = h
             st.session_state.load_hist_error = err if err else None
@@ -308,19 +308,19 @@ def main():
             if df is not None and len(df) > 0:
                 st.line_chart(df.set_index("episode"))
             else:
-                st.warning("표시할 데이터가 없습니다.")
+                st.warning("No data to display.")
         else:
-            st.info("checkpoints/history.npy 또는 checkpoints/dqn/history.npy 경로 입력 후 로드")
+            st.info("Enter path (e.g. checkpoints/history.npy) and click Load")
 
-    # --- Tab: DQN vs PPO 비교 ---
+    # --- Tab: DQN vs PPO Comparison ---
     with tab_compare:
-        st.subheader("⚖️ DQN vs PPO 비교")
+        st.subheader("⚖️ DQN vs PPO Comparison")
         c1, c2 = st.columns(2)
         with c1:
             dqn_path = st.text_input("DQN history", value="checkpoints/dqn/history.npy", key="dqn_path")
         with c2:
             ppo_path = st.text_input("PPO history", value="checkpoints/ppo/history.npy", key="ppo_path")
-        if st.button("비교 그래프", key="compare_btn"):
+        if st.button("Compare", key="compare_btn"):
             dqn_h, dqn_err = load_history(dqn_path.strip())
             ppo_h, ppo_err = load_history(ppo_path.strip())
             if dqn_h and ppo_h:
@@ -336,22 +336,22 @@ def main():
             else:
                 st.session_state.compare_df = None
                 errs = [e for e in [dqn_err, ppo_err] if e]
-                st.session_state.compare_error = " | ".join(errs) if errs else "로드 실패"
+                st.session_state.compare_error = " | ".join(errs) if errs else "Failed to load"
         if st.session_state.get("compare_error"):
             st.error(st.session_state.compare_error)
         if "compare_df" in st.session_state and st.session_state.compare_df is not None:
             st.line_chart(st.session_state.compare_df.set_index("episode"))
 
-    # --- Tab: 실시간 학습 ---
+    # --- Tab: Live Training ---
     with tab_train:
-        st.subheader("▶️ 실시간 학습")
+        st.subheader("▶️ Live Training")
         t1, t2 = st.columns(2)
         with t1:
-            train_algo = st.selectbox("알고리즘", ["dqn", "ppo"], key="train_algo")
-            train_episodes = st.number_input("에피소드 수", 10, 500, 100, key="train_ep")
+            train_algo = st.selectbox("Algorithm", ["dqn", "ppo"], key="train_algo")
+            train_episodes = st.number_input("Episodes", 10, 500, 100, key="train_ep")
         with t2:
             train_max_steps = st.number_input("Max steps/episode", 50, 500, 100, key="train_ms")
-        if st.button("학습 시작", key="train_start"):
+        if st.button("Start Training", key="train_start"):
             st.session_state.train_running = True
         if st.session_state.get("train_running"):
             progress_bar = st.progress(0)
@@ -396,12 +396,12 @@ def main():
                     rewards = hist["episode_rewards"]
                     progress_bar.progress(1.0)
                     chart_placeholder.line_chart(__import__("pandas").DataFrame({"reward": rewards}))
-                    status_placeholder.caption(f"PPO 학습 완료 ({len(rewards)} episodes)")
+                    status_placeholder.caption(f"PPO training complete ({len(rewards)} episodes)")
                 Path("checkpoints").mkdir(exist_ok=True)
                 agent.save("checkpoints/final.pt")
                 np.save(Path("checkpoints") / "history.npy", {"episode_rewards": rewards, "episode_losses": [], "episode_epsilons": []}, allow_pickle=True)
                 st.session_state.train_running = False
-                st.success(f"학습 완료! 최근 10 에피소드 평균: {np.mean(rewards[-10:]):.2f}")
+                st.success(f"Training complete! Last 10 episodes avg: {np.mean(rewards[-10:]):.2f}")
             except Exception as e:
                 st.error(str(e))
                 st.session_state.train_running = False

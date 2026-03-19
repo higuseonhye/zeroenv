@@ -1,80 +1,80 @@
-# Phase 1 학습 포인트 — Environment
+# Phase 1 Learning Points — Environment
 
-RL을 공부하는 입장에서 **이해해야 할 원리**와 **다른 프로젝트에 적용하는 방법** 정리.  
-FAQ에서 다룬 관점을 반영함.
-
----
-
-## 1. 왜 Environment를 먼저 만드는가?
-
-강화학습의 핵심 루프:
-
-```
-Agent가 관측(obs)을 받음 → 행동(action) 선택 → Environment가 반응(보상, 다음 상태)
-```
-
-**Environment가 정의되기 전에는 Agent를 설계할 수 없다.**  
-관측 공간, 행동 공간, 보상 구조가 모두 Environment에서 나온다.
-
-→ **새 RL 프로젝트를 시작할 때는 항상 Environment 정의부터.**
+Summary of **principles to understand** and **how to apply them to other projects** from an RL learning perspective.  
+Reflects perspectives covered in the FAQ.
 
 ---
 
-## 2. MDP — 환경을 수학적으로 표현하기
+## 1. Why Build the Environment First?
 
-### 2.1 왜 MDP인가?
+The core RL loop:
 
-RL 문제를 풀려면 "무엇을 최적화하는가"를 수식으로 쓸 수 있어야 한다.  
-MDP는 그 수식을 정의하는 표준 틀이다.
+```
+Agent receives observation (obs) → chooses action → Environment responds (reward, next state)
+```
 
-| 요소 | GridWorld 예시 | 다른 프로젝트 적용 |
-|------|----------------|-------------------|
-| **State S** | (row, col) | 게임: 화면 픽셀, 로봇: 관절 각도 |
-| **Action A** | {up, right, down, left} | Discrete 또는 Continuous |
-| **Transition P** | 확정적: s' = s + Δ(s,a) | 확률적일 수도 있음 |
-| **Reward R** | +1, -0.01, -1 | 목표에 맞게 설계 |
-| **γ (gamma)** | 0.99 | 미래를 얼마나 중요하게 볼지 |
+**You cannot design an Agent until the Environment is defined.**  
+Observation space, action space, and reward structure all come from the Environment.
 
-### 2.2 Markov 성질의 의미
-
-**다음 상태는 현재 상태와 행동에만 의존한다.**
-
-- 결정용 메모리 vs 학습용 메모리 구분. (→ FAQ Q1)
-- 완전 관측이면 현재 상태에 다 들어있음. 부분 관측이면 과거(메모리)가 필요.
-
-→ **새 환경을 설계할 때:** "이 문제가 Markov한가?"를 먼저 확인한다.
+→ **When starting a new RL project, always begin with Environment definition.**
 
 ---
 
-## 3. 보상 설계 — Reward Shaping
+## 2. MDP — Representing the Environment Mathematically
 
-### 3.1 보상이 학습을 결정한다
+### 2.1 Why MDP?
 
-Agent는 **누적 보상**을 최대화하려 한다.  
-보상 구조가 잘못되면, 의도와 다른 행동을 학습한다.
+To solve an RL problem, you must be able to express "what to optimize" in mathematical form.  
+MDP is the standard framework that defines that formulation.
 
-### 3.2 기본 설계 (GridWorld)
+| Element | GridWorld Example | Applying to Other Projects |
+|---------|-------------------|----------------------------|
+| **State S** | (row, col) | Game: screen pixels, Robot: joint angles |
+| **Action A** | {up, right, down, left} | Discrete or Continuous |
+| **Transition P** | Deterministic: s' = s + Δ(s,a) | Can be stochastic |
+| **Reward R** | +1, -0.01, -1 | Design for your goal |
+| **γ (gamma)** | 0.99 | How much to value the future |
 
-```
-reward_goal: +1      → "여기로 가라"
-reward_step: -0.01   → "빨리 끝내라"
-reward_obstacle: -1  → "이건 하지 마라"
-```
+### 2.2 Meaning of the Markov Property
 
-→ **적용 시:** 목표 행동에는 +, 위험/비효율에는 -, 스텝 비용을 고려한다.
+**The next state depends only on the current state and action.**
 
-### 3.3 확장 관점 (→ FAQ Q6)
+- Distinguish decision memory vs learning memory. (→ FAQ Q1)
+- With full observability, everything is in the current state. With partial observability, past (memory) is needed.
 
-| 관점 | 요약 |
-|------|------|
-| **미래·지연 만족** | γ≈1 + 희소 보상으로 "먼 미래" 유도 |
-| **Quantum jump** | 99번 실패 + 1번 성공 시 큰 보상. 계단식 |
-| **다양한 보상** | 목표·과정·호기심·스텝비용·실패를 각각 설계. 마이너스는 "벌"이 아니라 정보·비용 |
-| **의도치 않은 보상** | Reward hacking: 의도치 않은 경로로 보상 받으면 에이전트가 그걸 택함 |
+→ **When designing a new environment:** First check "Is this problem Markov?"
 
 ---
 
-## 4. Gymnasium API — 왜 표준 인터페이스인가?
+## 3. Reward Design — Reward Shaping
+
+### 3.1 Rewards Determine Learning
+
+The Agent seeks to maximize **cumulative reward**.  
+If the reward structure is wrong, it learns unintended behavior.
+
+### 3.2 Basic Design (GridWorld)
+
+```
+reward_goal: +1      → "Go here"
+reward_step: -0.01   → "Finish quickly"
+reward_obstacle: -1  → "Don't do this"
+```
+
+→ **When applying:** Use + for goal behavior, - for danger/inefficiency, consider step cost.
+
+### 3.3 Extended Perspectives (→ FAQ Q6)
+
+| Perspective | Summary |
+|-------------|---------|
+| **Future·Delayed gratification** | γ≈1 + sparse reward to guide toward "distant future" |
+| **Quantum jump** | 99 failures + 1 success → large reward. Step function |
+| **Diverse rewards** | Design goal, process, curiosity, step cost, failure separately. Minus is not "punishment" but information/cost |
+| **Unintended rewards** | Reward hacking: if agent gets reward via unintended path, it will choose that path |
+
+---
+
+## 4. Gymnasium API — Why a Standard Interface?
 
 ### 4.1 reset / step / render
 
@@ -88,38 +88,38 @@ frame = env.render()
 
 | | terminated | truncated |
 |---|------------|-----------|
-| **의미** | MDP 내 자연 종료 | MDP 외부 제한 (시간 초과 등) |
-| **Bootstrapping** | 다음 상태 가치 = 0 | 다음 상태 가치 사용 가능 |
+| **Meaning** | Natural termination within MDP | External limit (timeout, etc.) |
+| **Bootstrapping** | Next state value = 0 | Next state value usable |
 
-→ **적용 시:** TD 학습에서 `done` 처리 시 terminated/truncated를 구분한다.
+→ **When applying:** Distinguish terminated/truncated when handling `done` in TD learning.
 
-### 4.3 표준을 쓰는 이유
+### 4.3 Why Use Standards
 
-- 알고리즘 코드를 환경에 맞게 바꿀 필요가 없다.
-- **환경은 교체 가능한 부품.** (→ FAQ Q7) 그리드를 버리고 CartPole, 그래프 등 완전히 다른 것으로 바꿔도 된다.
+- No need to change algorithm code for each environment.
+- **Environments are swappable components.** (→ FAQ Q7) You can replace the grid with CartPole, graphs, etc.
 
 ---
 
-## 5. 환경 설계·변경 (→ FAQ Q7)
+## 5. Environment Design·Modification (→ FAQ Q7)
 
-### 5.1 환경을 바꾼다는 것
+### 5.1 What It Means to Change the Environment
 
-- **구조**: 그리드 크기, 장애물, 목표 위치
-- **규칙**: 가능한 행동, 전이 방식
-- **난이도**: 쉬운 맵 → 어려운 맵
-- **환경 교체**: 그리드 → CartPole, 그래프, 이미지 등 완전히 다른 것으로 바꾸기
+- **Structure**: grid size, obstacles, goal position
+- **Rules**: possible actions, transition dynamics
+- **Difficulty**: easy map → hard map
+- **Environment swap**: grid → CartPole, graph, images, etc.
 
-### 5.2 구현 (Phase 1 확장)
+### 5.2 Implementation (Phase 1 Extension)
 
-| 방법 | 구현 |
-|------|------|
+| Method | Implementation |
+|--------|----------------|
 | **Configurable rewards** | `reward_goal`, `reward_step`, `reward_obstacle` params |
-| **Curriculum** | `make_gridworld_curriculum(episode)` — grid_size 3→10 점진적 |
-| **Procedural** | `make_gridworld_procedural(seed)` — seed마다 다른 맵 |
-| **환경 교체** | `env = gym.make("CartPole-v1")` 등 다른 env로 교체 |
+| **Curriculum** | `make_gridworld_curriculum(episode)` — grid_size 3→10 gradual |
+| **Procedural** | `make_gridworld_procedural(seed)` — different map per seed |
+| **Environment swap** | `env = gym.make("CartPole-v1")` etc. to swap env |
 
 ```python
-# 예시
+# Example
 from envs.factories import make_gridworld_curriculum, make_gridworld_procedural
 
 # Curriculum
@@ -129,38 +129,38 @@ env = make_gridworld_curriculum(episode=200) # 5×5
 # Procedural
 env = make_gridworld_procedural(seed=42)
 
-# 학습 시
+# When training
 python main.py train --env gridworld --curriculum
 ```
 
 ---
 
-## 6. 구현 시 체크리스트 (다른 프로젝트용)
+## 6. Implementation Checklist (For Other Projects)
 
-- [ ] **State space**: 무엇을 관측하는가? shape, dtype, 범위는?
+- [ ] **State space**: What is observed? shape, dtype, range?
 - [ ] **Action space**: Discrete / Box / MultiDiscrete?
-- [ ] **보상**: 목표에 맞는가? 희소/밀집 균형은? reward_goal, reward_step 등 명시?
-- [ ] **Markov**: 현재 상태만으로 충분한가?
-- [ ] **terminated vs truncated**: 둘 다 필요한가?
-- [ ] **seed**: `reset(seed=)`로 재현 가능한가?
-- [ ] **환경 교체**: Gymnasium API를 따르면 다른 env로 쉽게 교체 가능?
-- [ ] **Curriculum/Procedural**: 필요하면 factory로 구현?
+- [ ] **Rewards**: Match the goal? Sparse/dense balance? Explicit reward_goal, reward_step?
+- [ ] **Markov**: Is current state sufficient?
+- [ ] **terminated vs truncated**: Both needed?
+- [ ] **seed**: Reproducible via `reset(seed=)`?
+- [ ] **Environment swap**: Following Gymnasium API allows easy swap?
+- [ ] **Curriculum/Procedural**: Implement via factory if needed?
 
 ---
 
-## 7. Phase 1에서 배운 것 요약
+## 7. Phase 1 Summary
 
-1. **Environment-first**: 환경 정의가 RL 프로젝트의 출발점이다.
-2. **MDP**: 상태, 행동, 전이, 보상, γ로 문제를 수식화한다.
-3. **보상 설계**: 목표·위험·과정·여정의 행복을 보상으로 설계할 수 있다.
-4. **표준 API**: Gymnasium을 따르면 알고리즘 재사용이 쉽고, 환경 교체가 가능하다.
-5. **terminated/truncated**: Bootstrapping과 학습 안정성을 위해 구분한다.
-6. **환경 설계**: Curriculum, Procedural, Parameterized. 막히면 환경을 바꿔보는 것도 전략이다.
-7. **환경 교체**: 그리드를 완전히 다른 환경으로 바꿔도 된다.
+1. **Environment-first**: Environment definition is the starting point of an RL project.
+2. **MDP**: Formulate the problem with state, action, transition, reward, γ.
+3. **Reward design**: Can design rewards for goal, danger, process, journey satisfaction.
+4. **Standard API**: Gymnasium enables algorithm reuse and environment swapping.
+5. **terminated/truncated**: Distinguish for bootstrapping and learning stability.
+6. **Environment design**: Curriculum, Procedural, Parameterized. Changing the environment is also a strategy when stuck.
+7. **Environment swap**: Can replace the grid with a completely different environment.
 
 ---
 
-## 참고
+## References
 
-- **FAQ**: [docs/FAQ_PHASE1.md](FAQ_PHASE1.md) — Markov vs 메모리, 누적 보상, 할인 γ, 미래·의도치 않은 보상, Quantum jump, 다양한 보상, 환경 설계·교체
-- **코드**: `envs/gridworld.py`, `envs/factories.py`
+- **FAQ**: [docs/FAQ_PHASE1.md](FAQ_PHASE1.md) — Markov vs memory, cumulative reward, discount γ, future·unintended rewards, Quantum jump, diverse rewards, environment design·swap
+- **Code**: `envs/gridworld.py`, `envs/factories.py`
